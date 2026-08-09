@@ -2,8 +2,8 @@
 // db.php
 $host = '127.0.0.1';
 $db   = 'lan_chat';
-$user = 'Lan_Chat_PHP';      // XAMPP 默认是 root
-$pass = 'mqq4188';          // XAMPP 默认密码为空，MAMP 可能是 root
+$user = 'lan_chat';      // XAMPP 默认是 root
+$pass = 'mffj8RHGpifWM6tD';          // XAMPP 默认密码为空，MAMP 可能是 root
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";

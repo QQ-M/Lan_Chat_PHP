@@ -1,5 +1,9 @@
 <?php
 require 'db.php';
+require 'auth.php';
+if (!isset($_SESSION['user_id'])) {
+    auto_login_internal();
+}
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;

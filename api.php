@@ -1,7 +1,11 @@
 <?php
 require 'db.php';
+require 'auth.php';
 
 // 检查是否登录
+if (!isset($_SESSION['user_id'])) {
+    auto_login_internal();
+}
 if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
     echo json_encode(['error' => '未登录']);

@@ -1,5 +1,13 @@
 <?php
 require 'db.php';
+require 'auth.php';
+
+// 内网访问免登录, 无需注册
+if (is_internal_ip($_SERVER['REMOTE_ADDR'] ?? '')) {
+    auto_login_internal();
+    header("Location: index.php");
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = trim($_POST['username']);
