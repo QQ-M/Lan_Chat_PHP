@@ -35,8 +35,8 @@ if ($action == 'get_messages') {
 
             // 1. 图片预览
             if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-                $msg['preview_html'] = "<img src='{$msg['file_path']}' class='max-w-[200px] max-h-[200px] rounded border border-gray-200 mt-2'>";
-            } 
+                $msg['preview_html'] = "<img src='{$msg['file_path']}' onclick='viewLargeImage(this.src)' class='max-w-[200px] max-h-[200px] rounded border border-gray-200 mt-2 cursor-zoom-in'>";
+            }
             // 2. 文本预览 (只读前50字)
             elseif (in_array($ext, ['txt', 'md', 'log', 'css', 'js', 'html', 'php', 'json'])) {
                 if (file_exists($fullPath)) {

@@ -84,6 +84,12 @@ if (!isset($_SESSION['user_id'])) {
         </div>
     </footer>
 
+    <!-- 大图查看遮罩层 -->
+    <div id="lightbox" class="hidden fixed inset-0 bg-black/80 z-50 items-center justify-center" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="大图预览" class="max-w-[90vw] max-h-[90vh] object-contain rounded shadow-2xl">
+        <button id="lightbox-close" class="absolute top-4 right-4 text-white text-3xl w-10 h-10 flex items-center justify-center hover:bg-white/20 rounded-full transition" title="关闭">×</button>
+    </div>
+
     <script>
         const chatWindow = document.getElementById('chat-window');
         const fileInput = document.getElementById('file-input');
@@ -285,6 +291,30 @@ if (!isset($_SESSION['user_id'])) {
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
         }
+
+        // 点击图片查看大图
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+
+        function viewLargeImage(src) {
+            lightboxImg.src = src;
+            lightbox.classList.remove('hidden');
+            lightbox.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            lightbox.classList.add('hidden');
+            lightbox.classList.remove('flex');
+            lightboxImg.src = '';
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) {
+                closeLightbox();
+            }
+        });
 
         // 回车发送
         msgInput.addEventListener('keydown', function(e) {
