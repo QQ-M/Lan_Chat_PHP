@@ -57,7 +57,10 @@ if (!isset($_SESSION['user_id'])) {
 
             <!-- 文件预览提示区 -->
             <div id="file-preview-area" class="hidden flex items-center justify-between bg-blue-50 px-3 py-2 rounded text-xs text-blue-700 border border-blue-100">
-                <span id="selected-file-name" class="truncate max-w-[80%]"></span>
+                <div class="flex items-center gap-2 min-w-0">
+                    <img id="file-thumbnail" class="hidden w-10 h-10 object-cover rounded border border-blue-200 shrink-0">
+                    <span id="selected-file-name" class="truncate max-w-[80%]"></span>
+                </div>
                 <button onclick="clearFile()" class="text-red-500 hover:text-red-700 font-bold">×</button>
             </div>
 
@@ -70,7 +73,7 @@ if (!isset($_SESSION['user_id'])) {
 
                 <!-- 文本输入框 -->
                 <div class="flex-1 relative">
-                    <textarea id="message-input" rows="1" class="w-full bg-gray-100 border-0 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:bg-white transition resize-none max-h-32" placeholder="输入消息..."></textarea>
+                    <textarea id="message-input" rows="1" class="w-full bg-gray-100 border-0 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:bg-white transition resize-none max-h-32" placeholder="输入消息，可直接粘贴图片..."></textarea>
                 </div>
 
                 <!-- 发送按钮 -->
@@ -85,6 +88,8 @@ if (!isset($_SESSION['user_id'])) {
         const chatWindow = document.getElementById('chat-window');
         const fileInput = document.getElementById('file-input');
         const msgInput = document.getElementById('message-input');
+        const filePreviewArea = document.getElementById('file-preview-area');
+        const fileThumbnail = document.getElementById('file-thumbnail');
         // 获取进度条相关元素
         const progressContainer = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
@@ -107,14 +112,25 @@ if (!isset($_SESSION['user_id'])) {
         function handleFileSelect(input) {
             const file = input.files[0];
             if (file) {
-                document.getElementById('file-preview-area').classList.remove('hidden');
+                filePreviewArea.classList.remove('hidden');
                 document.getElementById('selected-file-name').innerHTML = `<i class="fas fa-file mr-1"></i> ${file.name} (${formatSize(file.size)})`;
+                showFileThumbnail(file);
+            }
+        }
+
+        function showFileThumbnail(file) {
+            if (file && file.type.startsWith('image/')) {
+                fileThumbnail.src = URL.createObjectURL(file);
+                fileThumbnail.classList.remove('hidden');
+            } else {
+                fileThumbnail.classList.add('hidden');
             }
         }
 
         function clearFile() {
             fileInput.value = '';
-            document.getElementById('file-preview-area').classList.add('hidden');
+            filePreviewArea.classList.add('hidden');
+            fileThumbnail.classList.add('hidden');
         }
 
         function formatSize(bytes) {
@@ -282,6 +298,35 @@ if (!isset($_SESSION['user_id'])) {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
             if(this.value === '') this.style.height = 'auto';
+        });
+
+        // 粘贴剪贴板图片
+        msgInput.addEventListener('paste', function(e) {
+            const items = e.clipboardData && e.clipboardData.items;
+            if (!items) return;
+
+            for (const item of items) {
+                if (item.type && item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (!file) break;
+
+                    // 根据 MIME 类型确保文件名带正确的扩展名，避免服务器无法识别
+                    const extMap = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'image/bmp': 'bmp' };
+                    const ext = extMap[file.type] || 'png';
+                    const namedFile = new File([file], `clipboard-${Date.now()}.${ext}`, { type: file.type });
+
+                    // 通过 DataTransfer 将粘贴的图片塞入文件选择框，复用现有的上传流程
+                    const dt = new DataTransfer();
+                    dt.items.add(namedFile);
+                    fileInput.files = dt.files;
+
+                    filePreviewArea.classList.remove('hidden');
+                    document.getElementById('selected-file-name').innerHTML = `<i class="fas fa-image mr-1"></i> 剪贴板图片 (${formatSize(file.size)})`;
+                    showFileThumbnail(file);
+                    break;
+                }
+            }
         });
 
         setInterval(fetchMessages, 1000);
