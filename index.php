@@ -22,6 +22,29 @@ if (!isset($_SESSION['user_id'])) {
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* 链接样式 */
+        a[target="_blank"] {
+            word-break: break-all;
+            transition: opacity 0.2s ease;
+        }
+        a[target="_blank"]:hover {
+            opacity: 0.8;
+        }
+        /* 白色气泡中的链接 */
+        .bg-white a[target="_blank"] {
+            color: #2563eb;
+        }
+        .bg-white a[target="_blank"]:hover {
+            color: #1d4ed8;
+        }
+        /* 蓝色气泡中的链接（自己发送的消息） */
+        .bg-blue-500 a[target="_blank"] {
+            color: #bfdbfe;
+        }
+        .bg-blue-500 a[target="_blank"]:hover {
+            color: #ffffff;
+        }
     </style>
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
@@ -252,7 +275,7 @@ if (!isset($_SESSION['user_id'])) {
                     // 如果有文本，且后面有文件，则添加底部边距
                     if (msg.content && msg.content.trim() !== '') {
                         const mbClass = fileContentHtml ? 'mb-2' : '';
-                        textHtml = `<div class="${mbClass}">${escapeHtml(msg.content)}</div>`;
+                        textHtml = `<div class="${mbClass}">${linkifyText(msg.content, isMe)}</div>`;
                     }
 
                     // 如果既没文本也没文件路径（异常数据），不渲染
@@ -290,6 +313,81 @@ if (!isset($_SESSION['user_id'])) {
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
+        }
+
+        // 自动检测文本中的URL并转换为可点击的超链接
+        // isOwnMessage: 是否是自己发送的消息（用于调整链接样式）
+        function linkifyText(text, isOwnMessage = false) {
+            // URL正则表达式：匹配 http://、https://、ftp:// 和 www. 开头的链接
+            // 允许URL中包含常见的字符，包括查询参数中的 & 和 =
+            const urlRegex = /((https?|ftp):\/\/[^\s<>"']+|www\.[^\s<>"']+)/gi;
+            
+            // 根据消息类型选择链接样式
+            const linkClass = isOwnMessage 
+                ? 'text-blue-200 hover:text-white underline break-all' 
+                : 'text-blue-600 hover:text-blue-800 underline break-all';
+            
+            // 先找到所有URL，记录位置
+            const urls = [];
+            let match;
+            while ((match = urlRegex.exec(text)) !== null) {
+                urls.push({
+                    url: match[0],
+                    index: match.index,
+                    length: match[0].length
+                });
+            }
+            
+            // 如果没有URL，直接返回转义后的文本
+            if (urls.length === 0) {
+                return escapeHtml(text);
+            }
+            
+            // 分段处理：URL部分保留原样（只转义属性值），非URL部分转义HTML
+            let result = '';
+            let lastIndex = 0;
+            
+            for (const urlInfo of urls) {
+                // 添加URL前的文本（转义HTML）
+                if (urlInfo.index > lastIndex) {
+                    result += escapeHtml(text.substring(lastIndex, urlInfo.index));
+                }
+                
+                // 处理URL
+                let href = urlInfo.url;
+                let displayUrl = urlInfo.url;
+                
+                // 移除末尾的标点符号（如句号、逗号、分号等），这些通常不是URL的一部分
+                const trailingPunctuation = /[.,;:!?]+$/;
+                const trailingMatch = href.match(trailingPunctuation);
+                if (trailingMatch) {
+                    href = href.substring(0, href.length - trailingMatch[0].length);
+                    displayUrl = displayUrl.substring(0, displayUrl.length - trailingMatch[0].length);
+                }
+                
+                // 如果是 www. 开头但没有协议，自动添加 https://
+                if (href.toLowerCase().startsWith('www.')) {
+                    href = 'https://' + href;
+                }
+                
+                // 转义URL用于href属性，防止XSS
+                const safeHref = href.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                // 转义显示文本
+                const safeDisplay = escapeHtml(displayUrl);
+                
+                // 创建超链接，在新标签页中打开，添加安全属性
+                result += `<a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="${linkClass}">${safeDisplay}</a>`;
+                
+                // 更新lastIndex，考虑移除的标点符号
+                lastIndex = urlInfo.index + urlInfo.length;
+            }
+            
+            // 添加URL后的文本（转义HTML）
+            if (lastIndex < text.length) {
+                result += escapeHtml(text.substring(lastIndex));
+            }
+            
+            return result;
         }
 
         // 点击图片查看大图
